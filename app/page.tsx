@@ -1,65 +1,69 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="relative min-h-screen overflow-hidden bg-black text-white">
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className="absolute inset-0 h-full w-full scale-110 object-cover blur-[4px] brightness-50"
+      >
+        <source src="/delivery.mp4" type="video/mp4" />
+      </video>
+
+      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-red-950/20 to-black" />
+
+      <section className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        <img
+          src="/logo.png"
+          alt="FASTever Logo"
+          className="w-44 drop-shadow-[0_0_45px_rgba(255,0,0,0.65)] md:w-56"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+
+        <p className="mt-8 max-w-2xl text-lg font-medium text-white/90 md:text-2xl">
+          Food • Grocery • Essentials Delivery
+        </p>
+
+        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.45em] text-red-400 md:text-sm">
+          Starting in Konni
+        </p>
+
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-5">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://play.google.com/store/apps/details?id=com.fastever.customer"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Download FASTever on Play Store"
+            className="transition duration-300 hover:scale-105"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <img
+              src="/playstore.png"
+              alt="Get it on Google Play"
+              className="h-14 w-auto drop-shadow-2xl md:h-16"
             />
-            Deploy Now
           </a>
+
           <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://apps.apple.com/app/fastever/id6763805908"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Download FASTever on App Store"
+            className="transition duration-300 hover:scale-105"
           >
-            Documentation
+            <img
+              src="/ios.png"
+              alt="Download on the App Store"
+              className="h-14 w-auto drop-shadow-2xl md:h-16"
+            />
           </a>
         </div>
-      </main>
-    </div>
+
+        <p className="mt-10 text-[10px] font-medium tracking-[0.35em] text-white/50 md:text-xs">
+          FAST • SMART • PREMIUM DELIVERY EXPERIENCE
+        </p>
+      </section>
+    </main>
   );
 }
