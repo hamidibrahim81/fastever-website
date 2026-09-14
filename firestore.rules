@@ -1,0 +1,591 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ======================================================
+    // 🔒 HELPER FUNCTIONS
+    // ======================================================
+    
+    // Check if user is logged in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if user has admin privileges (Custom Claim OR registered super_admin staff)
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        get(/databases/$(database)/documents/app_staffs/$(request.auth.uid)).data.role == "super_admin"
+      );
+    }
+
+    // Check if the data belongs to the logged-in user (Customer App)
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 🔒 SECURE RESTAURANT CHECK
+    function isRestaurantUser(restaurantId) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.authUid == request.auth.uid;
+    }
+
+    // ======================================================
+    // 👨‍💼 STAFF MANAGEMENT & RBAC
+    // ======================================================
+    match /app_staffs/{staffId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ======================================================
+    // 👤 USERS (Customer App Profile)
+    // ======================================================
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+
+      match /profile/{docId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /cart/{itemId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /addresses/{addressId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /instahub_cart/{itemId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /order_history/{orderId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      
+      // ✅ ADDED: Rule for usedCoupons sub-collection
+      match /usedCoupons/{couponCode} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for salon_booking customer tracking sub-collection
+      match /salon_booking/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for turf_booking customer tracking sub-collection
+      match /turf_booking/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for pet_booking customer tracking sub-collection
+      match /pet_booking/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for ride_booking customer tracking sub-collection
+      match /ride_booking/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for tourist_bus_booking customer tracking sub-collection
+      match /tourist_bus_booking/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for pharmacy_orders customer tracking sub-collection
+      match /pharmacy_orders/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+
+      // ✅ ADDED: Rule for lab_booking customer tracking sub-collection
+      match /lab_booking/{orderId} {
+        allow read, write, create: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // ======================================================
+    // 🛵 DRIVERS (REQUIRED for Dashboard & Location)
+    // ======================================================
+    match /drivers/{driverId} {
+      // ✅ UPDATED: Allows background heartbeat query for all signed-in drivers
+      allow read: if isSignedIn();
+      // Only the driver or admin can update location/wallet/status
+      allow write: if isOwner(driverId) || isAdmin();
+    }
+
+    // ======================================================
+    // 🍽 RESTAURANTS & MENUS
+    // ======================================================
+    match /restaurants/{restaurantId} {
+      allow read: if true; 
+      allow write: if isAdmin() || isRestaurantUser(restaurantId); 
+
+      // ✅ ADDED: Specific rule for FCM Token sub-collection
+      match /tokens/fcm_token {
+        allow read, write: if isAdmin() || isRestaurantUser(restaurantId);
+      }
+
+      match /menu/{itemId} {
+        allow read: if true;
+        allow write: if isAdmin() || isRestaurantUser(restaurantId);
+        // ✅ ADDED: Allows customers to update 'stock' during order placement
+        allow update: if isSignedIn(); 
+      }
+    }
+
+    // Catch-all for nested menu items
+    match /{path=**}/menu/{itemId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // ======================================================
+    // 🎂 CAKE SHOPS & MENUS (UPDATED WITH BOOKINGS & PAYMENTS SUBCOLLECTIONS)
+    // ======================================================
+    match /cakeshop/{shopId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+
+      match /menu/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
+        // Allows updating fields like stock during checkout or cart operations
+        allow update: if isSignedIn();
+      }
+
+      // ✅ NEW: Allows signed-in users to create bookings inside shop sub-collection, and owners/admins/partners to read/update
+      match /cake_gift_booking/{bookingId} {
+        allow create: if isSignedIn();
+        allow read, update: if isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && request.auth.uid == resource.data.assignedPartnerId);
+        allow delete: if isAdmin();
+      }
+
+      // ✅ NEW: Allows admins to read and write payment history archives under each cake shop
+      match /payments_history/{paymentId} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'washing_centre' Collection & Subcollections
+    match /washing_centre/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      // Grants specific rule layout requirements to create and read records within centre_orders subcollection
+      match /centre_orders/{orderId} {
+        allow create: if isSignedIn();
+        allow read, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'salons' Collection & Subcollections
+    match /salons/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      // Grants rules layout requirement to commit and read records within the subcollection block
+      match /centre_orders/{orderId} {
+        allow create: if isSignedIn();
+        allow read, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'turf' Collection & Subcollections
+    match /turf/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      match /centre_orders/{orderId} {
+        allow create: if isSignedIn();
+        allow read, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'pet_care' Collection & Subcollections
+    match /pet_care/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      match /centre_orders/{orderId} {
+        allow create: if isSignedIn();
+        allow read, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'labs' Collection & Subcollections
+    match /labs/{id} {
+      allow read: if true;
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == id);
+
+      match /centre_orders/{orderId} {
+        allow create: if isSignedIn();
+        allow read, update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ======================================================
+    // 🧾 MASTER ORDERS (Customer History)
+    // ======================================================
+    match /orders/{orderId} {
+      allow create: if isSignedIn();
+      // ✅ UPDATED: Ensure Admin can read for dashboard enrichment
+      allow read, update: if isAdmin() || isOwner(resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Rule for cake_gift_booking collection (Cart checkout orders & Vendor App updates)
+    match /cake_gift_booking/{bookingId} {
+      allow create: if isSignedIn();
+      allow read, update: if isSignedIn() || isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && request.auth.uid == resource.data.assignedPartnerId);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ FIXED/UPDATED: Allows assigned detailing riders to successfully read and process tracking stages
+    match /booking_washing_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && request.auth.uid == resource.data.assigned_driver_id);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Master Global Salon Bookings Collection
+    match /booking_salon_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && request.auth.uid == resource.data.salon_id);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Master Global Turf Bookings Collection
+    match /booking_turf_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && (request.auth.uid == resource.data.turf_id || request.auth.uid == resource.data.centre_id));
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Master Global Pet Bookings Collection
+    match /booking_pet_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && request.auth.uid == resource.data.pet_id);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Master Global Ride Bookings Collection
+    match /booking_ride_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.user_id) || (isSignedIn() && request.auth.uid == resource.data.assigned_driver_id);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Tourist Bus Collection & Bookings
+    match /tourist_bus/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /booking_tourist_bus_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.user_id);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ UPDATED: Secure Rules Configuration for Pharmacy Orders Collection
+    match /pharmacy_orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Pharmacy Inventory Catalog
+    match /pharmacy_inventory/{id} {
+      allow read: if true;
+      allow write: if isAdmin() || isSignedIn();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for Master Global Lab Bookings Collection
+    match /booking_lab_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.user_id) || (isSignedIn() && request.auth.uid == resource.data.centre_id);
+      allow delete: if isAdmin();
+    }
+
+    // ======================================================
+    // 🛵 DELIVERY PARTNER JOBS (Legacy/Generic)
+    // ======================================================
+    match /delivery_partner/{jobId} {
+      // Formatted spacing for scannability
+      allow create: if isSignedIn();
+      allow read, update: if isSignedIn(); 
+    }
+
+    // ======================================================
+    // 👑 ORDER STATUS (Tracking for all parties)
+    // ======================================================
+    match /order_status/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn();
+      // ✅ Allows authenticated drivers and apps to commit updates including arrayUnion on statusHistory
+      allow update: if isSignedIn();
+    }    
+
+    // ======================================================
+    // 🍳 RESTAURANT SPLIT ORDERS (Kitchen View)
+    // ======================================================
+    match /restaurant_orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+    }
+
+    // ======================================================
+    // 🛵 DELIVERY PARTNER ORDERS (The Supply Side)
+    // ======================================================
+    match /delivery_partner_orders/{orderId} {
+      // ✅ FIXED: Explicitly grants layout rules for atomic batch writes
+      allow read, create, update, delete, write: if isSignedIn(); 
+    }
+
+    // ======================================================
+    // 💰 PAYMENTS  
+    // ======================================================
+    match /restaurant_payments/{paymentId} {
+      allow read: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+      // ✅ UPDATED: Allow restaurant to update status (Mark as Paid)
+      allow write: if isAdmin(); 
+      allow update: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+    }
+
+    // ✅ UPDATED: Rule for the payment_restaurant collection
+    match /payment_restaurant/{paymentId} {
+      allow read: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+      allow create: if isSignedIn(); 
+      // Allow the restaurant to update 'status' to 'paid' and add 'restaurantSignature'
+      allow update: if isAdmin() || isRestaurantUser(restaurantId);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ FIX: Protected Secure Rule for the new 'payment_rest' collection 
+    match /payment_rest/{paymentId} {
+      allow read: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+      allow create: if isSignedIn(); 
+      allow update: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Rule for the archived daily summaries
+    match /payment_completed_restaurant/{paymentId} {
+      allow read: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+      allow create, update: if isAdmin() || isRestaurantUser(request.resource.data.restaurantId);
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Rule for Payment Batches
+    match /payment_batches/{batchId} {
+      allow read: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+      allow write: if isAdmin();
+      allow update: if isAdmin() || isRestaurantUser(resource.data.restaurantId);
+    }
+
+    // ✅ ADDED: Rule for main payment collection
+    match /payment/{paymentId} {
+      allow read: if isAdmin() || isOwner(resource.data.userId);
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ✅ NEW: Rule for instahub_payments collection
+    match /instahub_payments/{paymentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ======================================================
+    // 💰 PARTNER DAILY PAYMENT & TRANSACTIONS (Resets Daily)
+    // ======================================================
+    match /partner_payment/{dateKey} {
+      allow read, write: if isSignedIn();
+
+      match /drivers/{driverId} {
+        allow read, write: if isSignedIn();
+
+        match /orders/{orderId} {
+          allow read, write: if isSignedIn();
+        }
+        
+        // ✅ FIXED: Catch-all recursive match pattern for nested itemized sub-collections layout data reads
+        match /{allChildren=**} {
+          allow read, write: if isSignedIn();
+        }
+      }
+    }
+
+    // ======================================================
+    // 📦 OTHER SERVICES 
+    // ======================================================
+    match /morningbooking/{bookingId} {
+      allow create: if isSignedIn();
+      // ✅ UPDATED ONLY THIS LINE: Allows read/update access if the token's authenticated email matches the assigned partner field parameters
+      allow read, update: if isOwner(resource.data.userId) || isAdmin() || (isSignedIn() && request.auth.token.email == resource.data.assignedPartnerEmail);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /cleaning_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ✅ FIXED: Secure Rules Configuration for 'home_service' Unified Collection
+    match /home_service/{id} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'home_providers' Collection
+    match /home_providers/{id} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'home_service_categories' Collection
+    match /home_service_categories/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ✅ FIXED/UPDATED: Allows custom driver matching to successfully pass operational validation
+    match /laundry/{id} {
+      allow create: if isSignedIn();
+      allow read, update: if isAdmin() || isOwner(resource.data.userId) || (isSignedIn() && request.auth.uid == resource.data.assigned_driver_id);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ✅ FIXED/UPDATED: Grants layout permissions for merchant settlement processing logic
+    match /laundry_shop/{shopId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      match /payments/{paymentId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
+      }
+    }
+
+    // ======================================================
+    // 👥 CUSTOMERS (Mobile Number as ID)
+    // ======================================================
+    match /customers/{phoneNumber} {
+      allow read, write: if (isSignedIn() && request.auth.token.phone_number == phoneNumber) || isAdmin();
+    }
+
+    match /bookinghomeservices/{bookingId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /ride_pricing/{vehicleType} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /ride_bookings/{rideId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ======================================================
+    // ⚙ CONFIGURATION & STATIC DATA
+    // ======================================================
+    match /app_settings/{document} { allow read: if true; allow write: if isAdmin(); }
+    match /service_areas/{areaId} { allow read: if true; allow write: if isAdmin(); }
+    match /offers/{offerId} { allow read: if true; allow write: if isAdmin(); }
+    match /coupons/{couponId} { allow read: if true; allow write: if isAdmin(); }
+    match /ads/{adId} { allow read: if true; allow write: if isAdmin(); }
+    match /home_ads/{adId} { allow read: if true; allow write: if isAdmin(); }
+    match /foods/{foodId} { allow read: if true; allow write: if isAdmin(); }
+    match /instantitems/{itemId} { allow read: if true; allow write: if isAdmin(); }
+    match /instaitems/{itemId} { allow read: if true; allow write: if isAdmin(); }
+    match /morningitems/{itemId} { allow read: if true; allow write: if isAdmin(); }
+    match /combodeals/{comboId} { allow read: if true; allow write: if isAdmin(); }
+    match /instahubStores/{storeId} { allow read: if true; allow write: if isAdmin(); }
+    match /deliverySettings/{settingId} { allow read: if true; allow write: if isAdmin(); }
+    match /deliveryfee/{documentId} { allow read: if true; allow write: if isAdmin(); }
+    match /ride_config/{configId} { allow read: if true; allow write: if isAdmin(); }
+    match /service_launches/{launchId} { allow read: if true; allow write: if isAdmin(); }
+    
+    // ✅ NEW: Rule for dynamic laundry delivery configuration settings engine calculation
+    match /laundry_deliveryfee/{documentId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    
+    // ✅ MORNING SERVICE SPECIFIC RULES
+    match /morning_service_areas/{areaId} { allow read: if true; allow write: if isAdmin(); }
+
+    // ✅ MORNING DELIVERY PARTNERS (Updated with sub-collection rules for historical logging)
+    match /morning_partners/{partnerId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      match /orders/{orderId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: SHOPS FOR MORNING COLLECTION & SUB-COLLECTIONS
+    match /shops_for_morning/{shopId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /shops_for_morning_orders/{shopName} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      match /orders/{orderId} {
+        allow read: if isSignedIn();
+        allow write, create, update: if isSignedIn();
+      }
+    }
+
+    // ✅ ASSIGNED ORDERS (Updated for Date-based Sub-collections)
+    match /assigned_orders/{orderDocId} {
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && request.auth.token.email == resource.data.assignedPartnerEmail;
+      allow write: if isAdmin();
+      
+      match /days/{dateId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ✅ NEW: REQUEST ITEM ORDERS
+    match /request_item_orders/{orderId} {
+      allow create: if isSignedIn();
+      allow read, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ======================================================
+    // ⚙️ SHOP CONFIGURATION RULES
+    // ======================================================
+    match /shop_name/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ✅ NEW: Secure Rules Configuration for 'customer_supprt' Read Module
+    match /customer_supprt/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ======================================================
+    // 👨‍💼 VENDOR PREFERENCES
+    // ======================================================
+    match /vendor_preferences/{userId} {
+      // Vendor can read and write only their own document
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+
+      // Admin can also access all vendor preferences
+      allow read, write: if isAdmin();
+    }
+
+    // ======================================================
+    // ⛔ SECURITY CATCH-ALL
+    // ======================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
