@@ -28,26 +28,14 @@ export default function Home() {
 
   return (
     <main className="relative h-screen w-full overflow-hidden bg-black text-white">
-      {/* MOBILE VIDEO: delivery1.mp4 (< 768px) */}
+      {/* SINGLE BACKGROUND VIDEO FOR ALL SCREENS */}
       <video
         autoPlay
         muted
         loop
         playsInline
         preload="auto"
-        className="block md:hidden absolute inset-0 h-full w-full object-cover blur-[2px] brightness-75"
-      >
-        <source src="/delivery1.mp4" type="video/mp4" />
-      </video>
-
-      {/* DESKTOP VIDEO: delivery.mp4 (>= 768px) */}
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        className="hidden md:block absolute inset-0 h-full w-full object-cover blur-[2px] brightness-75"
+        className="absolute inset-0 h-full w-full object-cover blur-[2px] brightness-75"
       >
         <source src="/delivery.mp4" type="video/mp4" />
       </video>
