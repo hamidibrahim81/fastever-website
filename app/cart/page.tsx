@@ -749,7 +749,6 @@ export default function CartPage() {
         createdAt: serverTimestamp(),
       };
 
-      // Step-by-step write with individual error diagnostics
       await setDoc(doc(db, "order_status", orderId), orderStatusPayload);
       await setDoc(doc(db, "delivery_partner_orders", orderId), deliveryPartnerPayload);
       await setDoc(doc(db, "orders", orderId), masterOrderPayload);

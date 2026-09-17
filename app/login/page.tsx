@@ -31,6 +31,7 @@ function LoginPageContent() {
   const [name, setName] = useState("");
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [agePolicyAccepted, setAgePolicyAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
@@ -124,6 +125,11 @@ function LoginPageContent() {
       return;
     }
 
+    if (!agePolicyAccepted) {
+      setError("Please acknowledge the Age-Restricted Products Policy.");
+      return;
+    }
+
     if (!termsAccepted) {
       setError("Please accept the Terms & Conditions.");
       return;
@@ -152,6 +158,7 @@ function LoginPageContent() {
       sessionStorage.setItem("fastever_login_phone", formattedPhone);
       sessionStorage.setItem("fastever_login_name", trimmedName);
       sessionStorage.setItem("fastever_login_age_confirmed", "true");
+      sessionStorage.setItem("fastever_login_age_policy_accepted", "true");
       sessionStorage.setItem("fastever_login_terms_accepted", "true");
       sessionStorage.setItem("fastever_login_privacy_accepted", "true");
       sessionStorage.setItem(
@@ -268,6 +275,28 @@ function LoginPageContent() {
             </span>
           </label>
 
+          {/* Age-Restricted Products Policy */}
+          <label className="flex items-start gap-3 mb-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={agePolicyAccepted}
+              onChange={(e) => setAgePolicyAccepted(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-2 border-[#FFC700] accent-[#FFC700] cursor-pointer shrink-0"
+            />
+            <span className="text-xs leading-5 text-black/75">
+              I agree to the{" "}
+              <a
+                href="https://sites.google.com/view/fastever-age-restrictedproduct/home"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-black font-black underline hover:text-[#b88c00]"
+              >
+                Age-Restricted Products Policy
+              </a>
+              .
+            </span>
+          </label>
+
           {/* Terms */}
           <label className="flex items-start gap-3 mb-3 cursor-pointer select-none">
             <input
@@ -278,13 +307,14 @@ function LoginPageContent() {
             />
             <span className="text-xs leading-5 text-black/75">
               I agree to the{" "}
-              <Link
-                href="/terms"
+              <a
+                href="https://sites.google.com/view/fasteverwebsitetermscondition/home"
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-black font-black underline hover:text-[#b88c00]"
               >
                 FASTever Terms & Conditions
-              </Link>
+              </a>
               .
             </span>
           </label>
@@ -299,13 +329,14 @@ function LoginPageContent() {
             />
             <span className="text-xs leading-5 text-black/75">
               I acknowledge that I have read the{" "}
-              <Link
-                href="/privacy"
+              <a
+                href="https://sites.google.com/view/fasteverprivacypolicyforwebsit/home"
                 target="_blank"
+                rel="noopener noreferrer"
                 className="text-black font-black underline hover:text-[#b88c00]"
               >
                 FASTever Privacy Policy
-              </Link>
+              </a>
               .
             </span>
           </label>
