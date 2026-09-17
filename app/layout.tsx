@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fastever.in"),
+  metadataBase: new URL("https://www.fastever.in"),
 
   title: "FASTever - Food, Grocery & Essentials Delivery",
 
@@ -37,13 +37,17 @@ export const metadata: Metadata = {
 
   applicationName: "FASTever",
 
+  verification: {
+    google: "XO9QOh35i2xKvBLlWYTrH_akRWt2fdNc4iDV3ssM6RM",
+  },
+
   alternates: {
-    canonical: "https://fastever.in",
+    canonical: "https://www.fastever.in/",
   },
 
   openGraph: {
     type: "website",
-    url: "https://fastever.in",
+    url: "https://www.fastever.in/",
     siteName: "FASTever",
     title: "FASTever - Food, Grocery & Essentials Delivery",
     description:
