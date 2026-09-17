@@ -13,9 +13,62 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://fastever.in"),
+
   title: "FASTever - Food, Grocery & Essentials Delivery",
-  description: "Get food, groceries, and essentials delivered quickly starting in Konni. Download our app on Google Play and the App Store.",
-  keywords: ["FASTever", "food delivery", "grocery delivery", "Konni delivery", "essentials"],
+
+  description:
+    "FASTever delivers food, groceries and essentials to your doorstep. Fast, smart and premium delivery starting in Konni, Kerala.",
+
+  keywords: [
+    "FASTever",
+    "FASTever delivery",
+    "food delivery",
+    "grocery delivery",
+    "essentials delivery",
+    "Konni delivery",
+    "food delivery Konni",
+    "grocery delivery Konni",
+  ],
+
+  authors: [{ name: "FASTever" }],
+  creator: "FASTever",
+  publisher: "FASTever",
+
+  applicationName: "FASTever",
+
+  alternates: {
+    canonical: "https://fastever.in",
+  },
+
+  openGraph: {
+    type: "website",
+    url: "https://fastever.in",
+    siteName: "FASTever",
+    title: "FASTever - Food, Grocery & Essentials Delivery",
+    description:
+      "Get food, groceries and essentials delivered to your doorstep. FASTever — fast, smart and premium delivery starting in Konni, Kerala.",
+    locale: "en_IN",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "FASTever - Food, Grocery & Essentials Delivery",
+    description:
+      "Food, groceries and essentials delivered to your doorstep. Starting in Konni, Kerala.",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default function RootLayout({
