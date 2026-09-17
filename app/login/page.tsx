@@ -76,31 +76,29 @@ function LoginPageContent() {
 
   const getOrCreateRecaptcha = () => {
     if (recaptchaVerifierRef.current) {
-      try {
-        recaptchaVerifierRef.current.clear();
-      } catch {}
-      recaptchaVerifierRef.current = null;
-    }
-
-    const container = document.getElementById("recaptcha-container");
-    if (container) {
-      container.innerHTML = "";
+      return recaptchaVerifierRef.current;
     }
 
     const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
       size: "invisible",
-      callback: () => {},
+      callback: () => {
+        console.log("reCAPTCHA verified");
+      },
       "expired-callback": () => {
+        console.log("reCAPTCHA expired");
+
         if (recaptchaVerifierRef.current) {
           try {
             recaptchaVerifierRef.current.clear();
           } catch {}
+
           recaptchaVerifierRef.current = null;
         }
       },
     });
 
     recaptchaVerifierRef.current = verifier;
+
     return verifier;
   };
 
@@ -166,13 +164,6 @@ function LoginPageContent() {
     } catch (err: any) {
       console.error("Send OTP error:", err);
 
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch {}
-        recaptchaVerifierRef.current = null;
-      }
-
       if (err?.code === "auth/invalid-phone-number") {
         setError("The mobile number is invalid.");
       } else if (err?.code === "auth/too-many-requests") {
@@ -191,8 +182,6 @@ function LoginPageContent() {
 
   return (
     <main className="min-h-screen bg-[#FFC400] text-[#111] flex items-center justify-center px-4 py-8 antialiased">
-      <div id="recaptcha-container" />
-
       <div className="w-full max-w-md">
         {/* Large Logo */}
         <div className="flex justify-center mb-6">
@@ -327,6 +316,9 @@ function LoginPageContent() {
               {error}
             </div>
           )}
+
+          {/* Recaptcha Container */}
+          <div id="recaptcha-container" />
 
           {/* Continue Button */}
           <button
