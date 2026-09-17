@@ -30,6 +30,7 @@ export default function OTPPage() {
   const [otp, setOtp] = useState("");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
+  const [returnTo, setReturnTo] = useState("/hub");
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -51,6 +52,8 @@ export default function OTPPage() {
       sessionStorage.getItem("fastever_login_name") || "";
     const storedVerificationId =
       sessionStorage.getItem("fastever_phone_verification_id") || "";
+    const storedReturnTo =
+      sessionStorage.getItem("fastever_login_return_to") || "/hub";
     const storedAge =
       sessionStorage.getItem("fastever_login_age_confirmed") === "true";
     const storedTerms =
@@ -61,6 +64,9 @@ export default function OTPPage() {
     setPhone(storedPhone);
     setName(storedName);
     setVerificationId(storedVerificationId);
+    setReturnTo(
+      storedReturnTo.startsWith("/") ? storedReturnTo : `/${storedReturnTo}`
+    );
     setAgeConfirmed(storedAge);
     setTermsAccepted(storedTerms);
     setPrivacyAccepted(storedPrivacy);
@@ -72,8 +78,13 @@ export default function OTPPage() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) return;
-      router.replace("/hub");
+      // If user is already authenticated and no ongoing OTP flow exists
+      const activeVerification = sessionStorage.getItem(
+        "fastever_phone_verification_id"
+      );
+      if (user && !activeVerification) {
+        router.replace("/hub");
+      }
     });
 
     return () => unsubscribe();
@@ -201,6 +212,8 @@ export default function OTPPage() {
 
       await saveWebsiteUser(user);
 
+      const targetDestination = returnTo || "/hub";
+
       sessionStorage.removeItem("fastever_login_phone");
       sessionStorage.removeItem("fastever_login_name");
       sessionStorage.removeItem("fastever_login_age_confirmed");
@@ -209,7 +222,7 @@ export default function OTPPage() {
       sessionStorage.removeItem("fastever_phone_verification_id");
       sessionStorage.removeItem("fastever_login_return_to");
 
-      router.replace("/hub");
+      router.replace(targetDestination);
     } catch (err: any) {
       console.error("OTP verification error:", err);
 
